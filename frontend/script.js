@@ -9,7 +9,7 @@ async function downloadVideo() {
 
     result.innerText = "ダウンロード中...";
     
-    const response = await fetch("https://your-render-api-url.com/download", {
+    const response = await fetch("https://youtube-downloader-ukh3.onrender.com/download", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url })
