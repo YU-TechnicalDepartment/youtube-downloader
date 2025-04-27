@@ -1,5 +1,4 @@
 # YouTube Downloader
-
 ## 概要
 このプロジェクトは、GitHub PagesのUIとRenderのAPIを組み合わせたYouTubeダウンローダーです。
 
@@ -20,4 +19,5 @@
 3. `render.yaml` に従ってデプロイ開始
 
 ## 注意事項
-著作権に注意してダウンロードしてください。
+> [!WARNING]
+> 著作権には十分注意してください。
