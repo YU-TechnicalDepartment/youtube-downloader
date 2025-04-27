@@ -9,7 +9,7 @@ os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
 @app.route('/download', methods=['GET', 'POST'])
 def download_video():
-    data = request.json
+    data = request.get_json(force=True)
     url = data.get("url")
 
     if not url:
