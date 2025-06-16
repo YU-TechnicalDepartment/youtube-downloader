@@ -6,8 +6,8 @@ import os
 app = Flask(__name__)
 app.secret_key = 'yu10002025'
 
-CLIENT_ID = "467608982614-8a27e8g1cppuhsignft8itkqjlvtlfgn.apps.googleusercontent.com"
-CLIENT_SECRET = "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"
+CLIENT_ID = "663075264415-79kub7cem28i6itfo6sc96kp167hfing.apps.googleusercontent.com"
+CLIENT_SECRET = "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"
 REDIRECT_URI = "https://youtube-downloader-dfgn.onrender.com"
 SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
