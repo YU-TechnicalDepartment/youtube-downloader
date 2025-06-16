@@ -8,7 +8,7 @@ app.secret_key = 'yu10002025'
 
 CLIENT_ID = "663075264415-79kub7cem28i6itfo6sc96kp167hfing.apps.googleusercontent.com"
 CLIENT_SECRET = "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"
-REDIRECT_URI = "https://youtube-downloader-dfgn.onrender.com"
+REDIRECT_URI = "https://youtube-downloader-dfgn.onrender.com/callback"
 SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 AUTH_URL = "https://accounts.google.com/o/oauth2/auth"
