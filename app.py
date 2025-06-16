@@ -1,58 +1,70 @@
-from flask import Flask, request, send_file
-import os
+from flask import Flask, redirect, request, session
+import requests
 from yt_dlp import YoutubeDL
-import tempfile
+import os
 
 app = Flask(__name__)
+app.secret_key = 'yu10002025'
 
-# 一時的な保存先ディレクトリ（システムのテンポラリ領域を利用）
-DOWNLOAD_DIR = tempfile.gettempdir()
+CLIENT_ID = "467608982614-8a27e8g1cppuhsignft8itkqjlvtlfgn.apps.googleusercontent.com"
+CLIENT_SECRET = "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"
+REDIRECT_URI = "https://youtube-downloader-dfgn.onrender.com"
+SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl"
+TOKEN_URL = "https://oauth2.googleapis.com/token"
+AUTH_URL = "https://accounts.google.com/o/oauth2/auth"
 
-# ダウンロードオプションの設定（ファイル名には動画タイトルが使われます）
-ydl_opts = {
-    'format': 'best',
-    'outtmpl': os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s')
-}
+@app.route("/")
+def index():
+    return '<a href="/login">GoogleでログインしてYouTube動画をダウンロード</a>'
 
-def download_video(url):
+@app.route("/login")
+def login():
+    auth_params = {
+        "client_id": CLIENT_ID,
+        "redirect_uri": REDIRECT_URI,
+        "response_type": "code",
+        "scope": SCOPE,
+        "access_type": "offline",
+        "prompt": "consent"
+    }
+    return redirect(f"{AUTH_URL}?{requests.compat.urlencode(auth_params)}")
+
+@app.route("/callback")
+def callback():
+    code = request.args.get("code")
+    token_params = {
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "redirect_uri": REDIRECT_URI,
+        "code": code,
+        "grant_type": "authorization_code"
+    }
+    response = requests.post(TOKEN_URL, data=token_params)
+    session['token'] = response.json().get("access_token")
+    return "ログイン完了！ <a href='/download'>動画をダウンロード</a>"
+
+@app.route("/download")
+def download_video():
+    if 'token' not in session:
+        return redirect("/login")
+
+    video_url = request.args.get("url")
+    if not video_url:
+        return "動画URLを指定してください。"
+
+    ydl_opts = {
+        'format': 'best',
+        'outtmpl': './%(title)s.%(ext)s',
+        'cookiefile': 'cookies.txt'  # OAuth認証後のクッキーを利用
+    }
+
     try:
         with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
+            info = ydl.extract_info(video_url, download=True)
             filename = ydl.prepare_filename(info)
-            return filename
+            return f"ダウンロード完了: {filename}"
     except Exception as e:
-        print("動画ダウンロード中にエラーが発生しました:", e)
-        return None
-
-@app.route("/", methods=["GET", "POST"])
-def index():
-    if request.method == "POST":
-        video_url = request.form.get("video_url")
-        if video_url:
-            filename = download_video(video_url)
-            if filename and os.path.exists(filename):
-                # ダウンロードしたファイルをユーザーに返す
-                return send_file(filename, as_attachment=True)
-            else:
-                return "動画のダウンロードに失敗しました。", 400
-    return '''
-        <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>YouTube Downloader</title>
-            </head>
-            <body>
-                <h1>YouTube Downloader</h1>
-                <form method="post">
-                    <label for="video_url">ダウンロードするYouTube動画のURLを入力してください：</label><br>
-                    <input type="text" id="video_url" name="video_url" size="50"><br><br>
-                    <input type="submit" value="ダウンロード">
-                </form>
-            </body>
-        </html>
-    '''
+        return f"エラー: {e}"
 
 if __name__ == "__main__":
-    # Render では PORT 環境変数がセットされるので、その値を使います
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True)
