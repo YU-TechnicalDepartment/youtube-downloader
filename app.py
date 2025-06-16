@@ -1,45 +1,58 @@
-from flask import Flask, request, send_file, render_template, redirect, url_for, flash
+from flask import Flask, request, send_file
 import os
 from yt_dlp import YoutubeDL
+import tempfile
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key_here"  # フラッシュメッセージ等に必要な場合
 
-# 一時的な保存先。サーバー環境やホスティング先によって適切なパスに調整してください。
-DOWNLOAD_FOLDER = '/tmp'
+# 一時的な保存先ディレクトリ（システムのテンポラリ領域を利用）
+DOWNLOAD_DIR = tempfile.gettempdir()
+
+# ダウンロードオプションの設定（ファイル名には動画タイトルが使われます）
+ydl_opts = {
+    'format': 'best',
+    'outtmpl': os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s')
+}
+
+def download_video(url):
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            filename = ydl.prepare_filename(info)
+            return filename
+    except Exception as e:
+        print("動画ダウンロード中にエラーが発生しました:", e)
+        return None
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        video_url = request.form.get("url")
-        if not video_url:
-            flash("URLを入力してください。")
-            return redirect(url_for("index"))
-
-        # 動画の出力テンプレート：一時ディレクトリ内に保存
-        ydl_opts = {
-            'format': 'best',
-            'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(title)s.%(ext)s')
-        }
-        try:
-            with YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(video_url, download=True)
-                filename = ydl.prepare_filename(info)
-        except Exception as e:
-            flash(f"ダウンロード中にエラーが発生しました: {e}")
-            return redirect(url_for("index"))
-        
-        # ファイルが無事ダウンロードされた場合、直接ユーザーに送信
-        if os.path.exists(filename):
-            return send_file(filename, as_attachment=True)
-        else:
-            flash("ダウンロードしたファイルが見つかりませんでした。")
-            return redirect(url_for("index"))
-    
-    # GETの場合はHTMLフォームを表示
-    return render_template("index.html")
+        video_url = request.form.get("video_url")
+        if video_url:
+            filename = download_video(video_url)
+            if filename and os.path.exists(filename):
+                # ダウンロードしたファイルをユーザーに返す
+                return send_file(filename, as_attachment=True)
+            else:
+                return "動画のダウンロードに失敗しました。", 400
+    return '''
+        <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>YouTube Downloader</title>
+            </head>
+            <body>
+                <h1>YouTube Downloader</h1>
+                <form method="post">
+                    <label for="video_url">ダウンロードするYouTube動画のURLを入力してください：</label><br>
+                    <input type="text" id="video_url" name="video_url" size="50"><br><br>
+                    <input type="submit" value="ダウンロード">
+                </form>
+            </body>
+        </html>
+    '''
 
 if __name__ == "__main__":
-    # Renderなどのクラウド環境ではPORTが環境変数から渡されるのでその場合は下記のように設定
+    # Render では PORT 環境変数がセットされるので、その値を使います
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port)
